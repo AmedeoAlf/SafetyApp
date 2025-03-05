@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SafetyApp</string>
+    <string name="title_activity_emergency_popup">EmergencyPopup</string>
+</resources>
