@@ -3,6 +3,7 @@ package it.edu.iisfermisacconiceciap.safetyapp
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -35,23 +36,28 @@ import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
 
 class MainActivity : ComponentActivity() {
     private fun success() {
-        val intent = Intent(this, Background::class.java)
-        startForegroundService(intent)
+        startForegroundService(
+            Intent(
+                this,
+                Background::class.java
+            )
+        )
 //                startService(intent)
         enableEdgeToEdge()
         setContent {
-            MainScreen()
+            SuccessScreen()
         }
     }
 
-    private fun error() {
+    private fun error(cards: List<CardData>) {
         setContent {
-            MissingPermScreen()
+            MissingPermScreen(cards)
         }
     }
 
     private fun createNotificationChannel() {
         val notificationManager = getSystemService(NotificationManager::class.java)
+        if (notificationManager.notificationChannels.find { chan -> chan.id == "overlay" } != null) return
         val channel = NotificationChannel(
             "overlay",
             "Disabilitami",
@@ -62,32 +68,55 @@ class MainActivity : ComponentActivity() {
         notificationManager.createNotificationChannel(channel)
     }
 
-    private fun requestOverlayPermission() {
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-            intent.setData("package:$packageName".toUri())
-            startActivity(intent)
+    private fun refreshMenu() {
+        println("                   ISSUED REFRESH")
+        val errorCards = mutableListOf<CardData>()
+        if (!Settings.canDrawOverlays(this)) errorCards.add(
+            CardData(
+                "Abilità SafetyApp in \"Mostra sopra altre app\" per mostrare l'allarme",
+                "Apri impostazioni"
+            ) {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).setData("package:$packageName".toUri()))
+            }
+        )
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
+            errorCards.add(
+                CardData(
+                    "L'app non ha accesso alle notifiche",
+                    "Concedi accesso"
+                ) {
+                    startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(
+                            Settings.EXTRA_APP_PACKAGE, packageName
+                        )
+                    )
+                })
         }
+        if (errorCards.isEmpty()) success() else error(errorCards)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshMenu()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         createNotificationChannel()
-        requestOverlayPermission()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                if (granted) success() else error()
+                if (granted) refreshMenu()
             }.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            success()
         }
+        refreshMenu()
     }
 }
 
 @Preview(group = "ok", device = "id:tv_4k")
 @Preview(group = "ok", device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun MainScreen() {
+fun SuccessScreen() {
     SafetyAppTheme {
         Surface(Modifier.fillMaxSize()) {
             Column(
@@ -130,9 +159,19 @@ fun MissingPermScreen(
 ) {
     SafetyAppTheme {
         Surface(Modifier.fillMaxSize()) {
-            LazyVerticalGrid(GridCells.Adaptive(250.dp), contentPadding = PaddingValues(10.dp)) {
-                items(cards) { card ->
-                    PermissionCard(card)
+            Column {
+                Text(
+                    "Permessi mancanti",
+                    style = MaterialTheme.typography.displayMedium,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 30.dp)
+                )
+                LazyVerticalGrid(
+                    GridCells.Adaptive(300.dp),
+                    contentPadding = PaddingValues(10.dp)
+                ) {
+                    items(cards) { card ->
+                        PermissionCard(card)
+                    }
                 }
             }
         }
