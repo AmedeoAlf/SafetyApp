@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,12 +37,10 @@ class MainActivity : ComponentActivity() {
     private fun success() {
         startForegroundService(
             Intent(
-                this,
-                Background::class.java
+                this, Background::class.java
             )
         )
 //                startService(intent)
-        enableEdgeToEdge()
         setContent {
             SuccessScreen()
         }
@@ -57,11 +54,10 @@ class MainActivity : ComponentActivity() {
 
     private fun createNotificationChannel() {
         val notificationManager = getSystemService(NotificationManager::class.java)
+        // Esiste già?
         if (notificationManager.notificationChannels.find { chan -> chan.id == "overlay" } != null) return
         val channel = NotificationChannel(
-            "overlay",
-            "Disabilitami",
-            NotificationManager.IMPORTANCE_LOW
+            "overlay", "Disabilitami", NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Queste notifiche servono soltanto a creare il foregroundService"
         }
@@ -77,13 +73,11 @@ class MainActivity : ComponentActivity() {
                 "Apri impostazioni"
             ) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).setData("package:$packageName".toUri()))
-            }
-        )
+            })
         if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             errorCards.add(
                 CardData(
-                    "L'app non ha accesso alle notifiche",
-                    "Concedi accesso"
+                    "L'app non ha accesso alle notifiche", "Concedi accesso"
                 ) {
                     startActivity(
                         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(
@@ -104,11 +98,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         createNotificationChannel()
+        // Chiedi i permessi per le notifiche
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) refreshMenu()
             }.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+        // Mostra l'interfaccia (errori oppure "schermata OK")
         refreshMenu()
     }
 }
@@ -130,6 +126,8 @@ fun SuccessScreen() {
     }
 }
 
+data class CardData(val description: String, val btnLabel: String, val action: () -> Unit)
+
 @Composable
 fun PermissionCard(card: CardData) {
     Card(Modifier.padding(6.dp)) {
@@ -140,20 +138,16 @@ fun PermissionCard(card: CardData) {
     }
 }
 
-data class CardData(val description: String, val btnLabel: String, val action: () -> Unit)
-
 @Preview(group = "missing", device = "id:tv_4k")
 @Preview(group = "missing", device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun MissingPermScreen(
     cards: List<CardData> = listOf(
         CardData(
-            "Permesso mancante",
-            "Correggi"
+            "Permesso mancante", "Correggi"
         ) {},
         CardData(
-            "Permesso mancante molto più lungo vediamo come appare",
-            "Apri impostazioni"
+            "Permesso mancante molto più lungo vediamo come appare", "Apri impostazioni"
         ) {},
     )
 ) {
@@ -166,8 +160,7 @@ fun MissingPermScreen(
                     modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 30.dp)
                 )
                 LazyVerticalGrid(
-                    GridCells.Adaptive(300.dp),
-                    contentPadding = PaddingValues(10.dp)
+                    GridCells.Adaptive(300.dp), contentPadding = PaddingValues(10.dp)
                 ) {
                     items(cards) { card ->
                         PermissionCard(card)

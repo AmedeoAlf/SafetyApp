@@ -34,6 +34,7 @@ class EmergencyPopup : ComponentActivity() {
 @Preview(device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun EmergencyScreen() {
+    // Sarebbe da implementare questo numero reattivamente
 //    var flow by remember { mutableStateOf(Background.exampleCounterFlow) }
     var num by remember { mutableIntStateOf(0) }
     SafetyAppTheme {
