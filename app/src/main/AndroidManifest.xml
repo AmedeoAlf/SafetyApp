@@ -15,7 +15,11 @@
 
     <!-- Prima o poi bisogna fare richieste https://developer.android.com/develop/connectivity/network-ops/connecting-->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Potrebbe essere overkill-->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Dobbiamo impedire alla CPU di dormire -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"

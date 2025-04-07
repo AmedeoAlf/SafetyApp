@@ -31,7 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.PREFERENCES_NAME
+import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.PreferencesManager
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private fun success() {
@@ -96,6 +101,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val preferencesManager = PreferencesManager(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            preferencesManager.setInt(PREFERENCES_NAME, 10)
+            println(
+                "Got ${
+                    preferencesManager.getInt(
+                        PREFERENCES_NAME
+                    )
+                }"
+            )
+        }
 
         createNotificationChannel()
         // Chiedi i permessi per le notifiche

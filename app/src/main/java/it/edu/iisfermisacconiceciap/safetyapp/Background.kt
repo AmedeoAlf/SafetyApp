@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
@@ -63,7 +64,13 @@ class Background : Service() {
     }
 
     override fun onCreate() {
-
+//        val wakeLock: PowerManager.WakeLock =
+        (getSystemService(POWER_SERVICE) as PowerManager).run {
+            newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "Background::Lock"
+            ).apply { acquire(10 * 60 * 1000L * 100 /*1000 minutes*/) }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
                 println("MISSING PERMS???? " + checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS))
@@ -75,8 +82,7 @@ class Background : Service() {
         notification = NotificationCompat.Builder(this, "overlay")
             .setContentTitle("Disabilita questa notifica")
             .setSmallIcon(R.drawable.ic_launcher_background)
-            .setContentText("Clicca per andare nelle impostazioni (TODO)")
-            .build()
+            .setContentText("Clicca per andare nelle impostazioni (TODO)").build()
         NotificationManagerCompat.from(this).notify(1, notification!!)
 
         startForeground(
@@ -85,17 +91,15 @@ class Background : Service() {
             //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
         )
         val handler = Handler(Looper.getMainLooper())
-        val checkServer = object : Runnable {
+        handler.post(object : Runnable {
             override fun run() {
                 doRequest(URL("http://192.168.178.22:3500/a")) { input ->
                     try {
                         val response = JSONTokener(input).nextValue() as JSONObject
                         if (response.getBoolean("emergency")) {
-                            val popup =
-                                Intent(
-                                    this@Background,
-                                    EmergencyPopup::class.java
-                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            val popup = Intent(
+                                this@Background, EmergencyPopup::class.java
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(popup)
                         }
                     } catch (e: JSONException) {
@@ -105,8 +109,7 @@ class Background : Service() {
                 }
                 handler.postDelayed(this, 2000)
             }
-        }
-        handler.post(checkServer)
+        })
 
         return super.onCreate()
     }
