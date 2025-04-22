@@ -18,6 +18,13 @@ class PreferencesManager(val context: Context) {
     suspend fun setInt(name: String, value: Int) =
         set(intPreferencesKey(name), value)
 
+    suspend fun incrementInt(name: String) {
+        val key = intPreferencesKey(name)
+        context.dataStore.edit { prefs ->
+            prefs[key] = (prefs[key] ?: 0) + 1
+        }
+    }
+
     suspend fun <T> get(key: Preferences.Key<T>): T? {
         return context.dataStore.data.firstOrNull { prefs ->
             prefs.contains(key)

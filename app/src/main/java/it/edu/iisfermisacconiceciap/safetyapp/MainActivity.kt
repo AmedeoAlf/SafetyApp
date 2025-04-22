@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).setData("package:$packageName".toUri()))
             })
-        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             errorCards.add(
                 CardData(
                     "L'app non ha accesso alle notifiche", "Concedi accesso"
