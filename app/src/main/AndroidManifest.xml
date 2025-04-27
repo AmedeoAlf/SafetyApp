@@ -21,6 +21,9 @@
     <!-- Dobbiamo impedire alla CPU di dormire -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Serve dichiarare il popup per chiedere l'esenzione dalle restrizioni in background -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
