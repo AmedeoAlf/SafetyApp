@@ -50,8 +50,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.datastore.preferences)
 //    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.datastore.preferences)
 
 
     testImplementation(libs.junit)

@@ -1,6 +1,8 @@
 package it.edu.iisfermisacconiceciap.safetyapp
 
 import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +16,9 @@ import java.net.NoRouteToHostException
 import java.net.URL
 
 class Util(val ctx: Context) {
+    companion object {
+        val baseURL = "http://172.20.1.13/safetyApp/"
+    }
     fun incrementPreferencesCounter(key: String) {
         CoroutineScope(Dispatchers.Default).launch {
             PreferencesManager(ctx).incrementInt(
@@ -22,10 +27,10 @@ class Util(val ctx: Context) {
         }
     }
 
-    fun doRequest(url: URL, process: (response: JSONObject) -> Unit) {
+    fun doRequest(endpoint: String, process: (response: JSONObject) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                with(url.openConnection() as HttpURLConnection) {
+                with(URL(baseURL + endpoint).openConnection() as HttpURLConnection) {
                     process(
                         JSONTokener(
                             inputStream.reader().readLines().joinToString("\n")
@@ -36,8 +41,6 @@ class Util(val ctx: Context) {
                 incrementPreferencesCounter("total_connections")
             } catch (_: ConnectException) {
                 incrementPreferencesCounter("total_unreachable")
-            } catch (e: FileNotFoundException) {
-                println("Couldn't find endpoint on server ($e)")
             } catch (e: NoRouteToHostException) {
                 println("No clue what this is ${e.message}")
             } catch (e: JSONException) {

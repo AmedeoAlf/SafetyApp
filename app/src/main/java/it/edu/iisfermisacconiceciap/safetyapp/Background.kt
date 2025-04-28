@@ -19,19 +19,25 @@ import java.util.TimerTask
 class Background : Service() {
     companion object {
         var notification: Notification? = null
+        var currEmergency = "Nessuna emergenza"
+        var currDescrizione = "Nessuna descrizione"
     }
 
-    val util = Util(this)
-    lateinit var wakeLock: PowerManager.WakeLock
+    private val util = Util(this)
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     fun update() {
         wakeLock.acquire(1000 * 60 * 1000L /*1000 minutes*/)
-        util.doRequest(URL("http://192.168.178.22:3500/a")) { response ->
-            if (!response.getBoolean("emergency")) return@doRequest
+        util.doRequest("requestSchoolStateJs.php") { response ->
+//            println(response.toString(0))
+            if (response.getInt("STATO") == 0) return@doRequest
+
+            currEmergency = response.getString("MESSAGGIO")
+            currDescrizione = response.getString("DESCRIZIONE")
             startActivity(
                 Intent(
                     this@Background, EmergencyPopup::class.java
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             )
         }
     }

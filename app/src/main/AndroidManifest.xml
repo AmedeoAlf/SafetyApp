@@ -1,27 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
-    <!-- Creare un foregroundService è necessario a far partire un'attività dal background-->
+    <!-- Creare un foregroundService è necessario a far partire un'attività dal background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <!-- NOTA: In alternativa si potrebbe usare https://developer.android.com/develop/background-work/services/fgs/service-types#system-exempted -->
-
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" /> <!-- NOTA: In alternativa si potrebbe usare https://developer.android.com/develop/background-work/services/fgs/service-types#system-exempted -->
     <!-- Per creare un foregroundService è necessario poter creare notifiche -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- Per qualche motivo serve anche SYSTEM_ALTERT_WINDOW -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-    <!-- Prima o poi bisogna fare richieste https://developer.android.com/develop/connectivity/network-ops/connecting-->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Potrebbe essere overkill-->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Dobbiamo impedire alla CPU di dormire -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- Serve dichiarare il popup per chiedere l'esenzione dalle restrizioni in background -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Per qualche motivo serve anche SYSTEM_ALTERT_WINDOW -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- Prima o poi bisogna fare richieste https://developer.android.com/develop/connectivity/network-ops/connecting -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- Potrebbe essere overkill -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Dobbiamo impedire alla CPU di dormire -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Serve dichiarare il popup per chiedere l'esenzione dalle restrizioni in background -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
@@ -36,12 +24,15 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".ClassroomForm"
+            android:exported="false"
+            android:label="@string/title_activity_classroom_form"
+            android:theme="@style/Theme.SafetyApp" />
+        <activity
             android:name=".EmergencyPopup"
             android:exported="false"
             android:label="@string/title_activity_emergency_popup"
-            android:theme="@style/Theme.SafetyApp" />
-
-        <!--            Cheap solution pt. 2-->
+            android:theme="@style/Theme.SafetyApp" /> <!-- Cheap solution pt. 2 -->
         <service
             android:name=".Background"
             android:enabled="true"
