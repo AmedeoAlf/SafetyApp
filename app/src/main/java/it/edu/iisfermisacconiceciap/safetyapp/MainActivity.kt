@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 import java.util.Date
@@ -157,6 +158,7 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
     var totalSuccessful by remember { mutableStateOf("---") }
     var totalUnreachable by remember { mutableStateOf("---") }
     var onStartCommand by remember { mutableStateOf("---") }
+    var snoozeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
     var lastReset by remember { mutableStateOf("---") }
     SafetyAppTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -164,19 +166,28 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                if (snoozeLeft != null) Button({
+                    Background.snoozeUntil = Instant.now().plusSeconds(60 * 5)
+                }) {
+                    Text("Allarme inibito per $snoozeLeft")
+                }
                 Text("OK", style = MaterialTheme.typography.displayLarge)
                 Text("Tutti i permessi in regola")
                 Text("Connessioni avvenute con successo: $totalSuccessful")
                 Text("Connessioni fallite: $totalUnreachable")
                 Text("onStartCommand: $onStartCommand")
                 LaunchedEffect(lastReset) {
-                    totalSuccessful = preferencesManager?.getInt("total_connections").toString()
-                    totalUnreachable = preferencesManager?.getInt("total_unreachable").toString()
-                    onStartCommand = preferencesManager?.getInt("onStartCommand").toString()
-                    val lastResetTimestamp = preferencesManager?.getInstant("lastReset")
-                    lastReset =
-                        if (lastResetTimestamp == null) "mai" else Date.from(lastResetTimestamp)
-                            .toString()
+                    while(true) {
+                        totalSuccessful = preferencesManager?.getInt("total_connections").toString()
+                        totalUnreachable = preferencesManager?.getInt("total_unreachable").toString()
+                        onStartCommand = preferencesManager?.getInt("onStartCommand").toString()
+                        val lastResetTimestamp = preferencesManager?.getInstant("lastReset")
+                        lastReset =
+                            if (lastResetTimestamp == null) "mai" else Date.from(lastResetTimestamp)
+                                .toString()
+                        snoozeLeft = Background.getSnoozeLeft()
+                        delay(100)
+                    }
                 }
                 Button({
                     val now = Instant.now()

@@ -10,7 +10,9 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
-import java.net.URL
+import java.time.Duration
+import java.time.Instant
+import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
 
@@ -18,9 +20,18 @@ import java.util.TimerTask
 
 class Background : Service() {
     companion object {
+        var running = false
         var notification: Notification? = null
         var currEmergency = "Nessuna emergenza"
         var currDescrizione = "Nessuna descrizione"
+        var isEmergency = false
+        var snoozeUntil = Instant.now()
+
+        fun getSnoozeLeft(): String? {
+            // toMinutes() requires API LEVEL 31
+            val secsLeft = Duration.between(Instant.now(), snoozeUntil).toMillis() / 1000
+            return if (secsLeft > 0) String.format(Locale.US, "%d:%02d", secsLeft.floorDiv(60), secsLeft % 60) else null
+        }
     }
 
     private val util = Util(this)
@@ -30,10 +41,12 @@ class Background : Service() {
         wakeLock.acquire(1000 * 60 * 1000L /*1000 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
 //            println(response.toString(0))
-            if (response.getInt("STATO") == 0) return@doRequest
+            isEmergency = response.getInt("STATO") != 0
+            if (!isEmergency) return@doRequest
 
             currEmergency = response.getString("MESSAGGIO")
             currDescrizione = response.getString("DESCRIZIONE")
+            if (Instant.now().isBefore(snoozeUntil)) return@doRequest
             startActivity(
                 Intent(
                     this@Background, EmergencyPopup::class.java
@@ -56,6 +69,9 @@ class Background : Service() {
         wakeLock = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
         )
+
+        if (running) return
+        running = true
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
@@ -103,4 +119,8 @@ class Background : Service() {
         return super.onCreate()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        running = false
+    }
 }
