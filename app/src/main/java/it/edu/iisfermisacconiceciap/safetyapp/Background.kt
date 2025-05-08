@@ -41,7 +41,8 @@ class Background : Service() {
         wakeLock.acquire(1000 * 60 * 1000L /*1000 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
 //            println(response.toString(0))
-            isEmergency = response.getInt("STATO") != 0
+            if (!response.has("STATO")) return@doRequest
+            isEmergency = response.getInt("STATO")  != 0
             if (!isEmergency) return@doRequest
 
             currEmergency = response.getString("MESSAGGIO")
