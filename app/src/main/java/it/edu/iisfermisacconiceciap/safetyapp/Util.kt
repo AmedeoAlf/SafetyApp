@@ -13,22 +13,17 @@ import java.net.HttpURLConnection
 import java.net.NoRouteToHostException
 import java.net.URL
 
-class Util(val ctx: Context) {
+class Util(private val ctx: Context) {
     companion object {
-        val baseURL = "http://172.20.1.13/safetyApp/"
+        const val BASEURL = "http://172.20.1.13/safetyApp/"
     }
 
-    fun incrementPreferencesCounter(key: String) {
-        CoroutineScope(Dispatchers.Default).launch {
-            PreferencesManager(ctx).incrementInt(
-                key
-            )
-        }
-    }
+    fun incrementPreferencesCounter(key: String) =
+        CoroutineScope(Dispatchers.Default).launch { PreferencesManager(ctx).incrementInt(key) }
 
     fun doRequest(endpoint: String, process: (response: JSONObject) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
-            val connection = URL(baseURL + endpoint).openConnection() as HttpURLConnection
+            val connection = URL(BASEURL + endpoint).openConnection() as HttpURLConnection
             try {
                 process(
                     JSONTokener(
