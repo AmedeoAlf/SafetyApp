@@ -30,7 +30,7 @@
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
@@ -40,7 +40,7 @@
             android:label="@string/title_activity_classroom_form"
             android:theme="@style/Theme.SafetyApp" />
         <activity
-            android:name=".EmergencyPopup"
+            android:name=".EmergencyActivity"
             android:exported="false"
             android:label="@string/title_activity_emergency_popup"
             android:theme="@style/Theme.SafetyApp" /> <!-- Cheap solution pt. 2 -->

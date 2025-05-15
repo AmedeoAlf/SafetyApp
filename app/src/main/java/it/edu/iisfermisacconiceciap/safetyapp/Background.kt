@@ -1,10 +1,10 @@
 package it.edu.iisfermisacconiceciap.safetyapp
 
-import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -20,46 +20,52 @@ import java.util.TimerTask
 
 class Background : Service() {
     companion object {
-        var running = false
-        var notification: Notification? = null
+        var running: Background? = null
         var currEmergency = "Nessuna emergenza"
         var currDescrizione = "Nessuna descrizione"
         var isEmergency = false
-        var snoozeUntil = Instant.now()
+        var snoozeUntil: Instant = Instant.now()
 
+        // Stringa contente i secondi rimanenti di allarme disattivato, null => allarme in funzione
         fun getSnoozeLeft(): String? {
             // toMinutes() requires API LEVEL 31
-            val secsLeft = Duration.between(Instant.now(), snoozeUntil).toMillis() / 1000
-            return if (secsLeft > 0) String.format(Locale.US, "%d:%02d", secsLeft.floorDiv(60), secsLeft % 60) else null
+            val secsLeft = Duration.between(
+                Instant.now(), snoozeUntil
+            ).toMillis() / 1000
+            return if (secsLeft > 0) String.format(
+                Locale.US, "%d:%02d", secsLeft.floorDiv(
+                    60
+                ), secsLeft % 60
+            ) else null
         }
     }
 
     private val util = Util(this)
-    private lateinit var wakeLock: PowerManager.WakeLock
+    private val wakeLock = getSystemService(PowerManager::class.java).newWakeLock(
+        PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
+    )
 
+    // Funzione da eseguire ad intervallo regolare (*/2s)
     fun update() {
-        wakeLock.acquire(1000 * 60 * 1000L /*1000 minutes*/)
+        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
 //            println(response.toString(0))
-            if (!response.has("STATO")) return@doRequest
-            isEmergency = response.getInt("STATO")  != 0
-            if (!isEmergency) return@doRequest
-
             currEmergency = response.getString("MESSAGGIO")
             currDescrizione = response.getString("DESCRIZIONE")
-            if (Instant.now().isBefore(snoozeUntil)) return@doRequest
+
+            if (!isEmergency || Instant.now().isBefore(snoozeUntil)) return@doRequest
             startActivity(
                 Intent(
-                    this@Background, EmergencyPopup::class.java
+                    this@Background,
+                    EmergencyActivity::class.java
                 ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             )
         }
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent): IBinder? = null
 
+    // Non so cosa fa questa funzione
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         println("Reached onStartCommand ${intent?.data}")
         util.incrementPreferencesCounter("onStartCommand")
@@ -67,47 +73,43 @@ class Background : Service() {
     }
 
     override fun onCreate() {
-        wakeLock = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
-        )
+        // È già in esecuzione un Background
+        if (running != null) return
+        running = this
 
-        if (running) return
-        running = true
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
-                println("MISSING PERMS???? " + checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS))
-                return super.onCreate()
-            }
+        // Non fare nulla in mancanza di accesso alle notifiche
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
+            println("MISSING PERMS???? " + checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS))
+            return super.onCreate()
         }
-        val notifIntent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(
-            Settings.EXTRA_APP_PACKAGE,
-            packageName,
-        ).putExtra(
-            Settings.EXTRA_CHANNEL_ID, "overlay"
-        )
 
-        val pendingIntent = PendingIntent.getActivity(
-            this, 1, notifIntent, PendingIntent.FLAG_IMMUTABLE
-        )
-
-        notification = NotificationCompat.Builder(this, "overlay")
+        // Crea la notifica per il foreground service
+        val notification = NotificationCompat.Builder(this, "overlay")
             .setContentTitle("Disabilita questa notifica")
-            .setSmallIcon(R.drawable.ic_launcher_background).setContentIntent(pendingIntent)
-            .setContentText("Tocca per andare nelle impostazioni").build()
+            .setSmallIcon(R.drawable.ic_launcher_background).setContentIntent(
+                PendingIntent.getActivity(
+                    this, 1, Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(
+                        Settings.EXTRA_APP_PACKAGE,
+                        packageName,
+                    ).putExtra(Settings.EXTRA_CHANNEL_ID, "overlay"), PendingIntent.FLAG_IMMUTABLE
+                )
+            ).setContentText("Tocca per andare nelle impostazioni").build()
 
-        startForeground(
-            2,
-            notification,
-            //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(2, notification)
+        }
         println("Started foreground service")
 
+        // Chiama la funzione update ogni 2s per tutta la vita del processo
         Timer().schedule(
             object : TimerTask() {
                 override fun run() = update()
             }, 0, 2000
-        )/*
+        )
+        // Implementazione alternativa
+        /*
         val handler = Handler(Looper.getMainLooper())
         handler.post(object : Runnable {
             override fun run() {
@@ -122,6 +124,6 @@ class Background : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        running = false
+        if (running == this) running = null
     }
 }

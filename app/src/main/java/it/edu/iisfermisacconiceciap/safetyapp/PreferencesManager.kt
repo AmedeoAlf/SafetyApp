@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -15,7 +15,7 @@ const val PREFERENCES_NAME = "prefs"
 
 val Context.dataStore by preferencesDataStore(PREFERENCES_NAME)
 
-class PreferencesManager(val ctx: Context) {
+class PreferencesManager(private val ctx: Context) {
     suspend fun getInt(name: String): Int? =
         get(intPreferencesKey(name))
 
@@ -43,13 +43,13 @@ class PreferencesManager(val ctx: Context) {
         }
     }
 
-    suspend fun <T> get(key: Preferences.Key<T>): T? {
-        return ctx.dataStore.data.firstOrNull()?.get(key)
-    }
+    suspend fun <T> get(key: Preferences.Key<T>): T? =
+        runCatching { ctx.dataStore.data.first()[key] }.getOrNull()
 
-    suspend fun <T> set(key: Preferences.Key<T>, value: T) {
-        ctx.dataStore.edit { preferences ->
-            preferences[key] = value
+    suspend fun <T> set(key: Preferences.Key<T>, value: T) =
+        runCatching {
+            ctx.dataStore.updateData {
+                it.toMutablePreferences().apply { set(key, value) }
+            }
         }
-    }
 }
