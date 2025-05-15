@@ -50,7 +50,6 @@ class Background : Service() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
 //            println(response.toString(0))
-            isEmergency = response.getInt("STATO") != 0
             currEmergency = response.getString("MESSAGGIO")
             currDescrizione = response.getString("DESCRIZIONE")
 
