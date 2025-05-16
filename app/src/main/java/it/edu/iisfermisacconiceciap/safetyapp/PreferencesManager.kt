@@ -38,18 +38,12 @@ class PreferencesManager(private val ctx: Context) {
 
     suspend fun incrementInt(name: String) {
         val key = intPreferencesKey(name)
-        ctx.dataStore.edit { prefs ->
-            prefs[key] = (prefs[key] ?: 0) + 1
-        }
+        runCatching { ctx.dataStore.edit { it[key] = (it[key] ?: 0) + 1 } }
     }
 
     suspend fun <T> get(key: Preferences.Key<T>): T? =
         runCatching { ctx.dataStore.data.first()[key] }.getOrNull()
 
     suspend fun <T> set(key: Preferences.Key<T>, value: T) =
-        runCatching {
-            ctx.dataStore.updateData {
-                it.toMutablePreferences().apply { set(key, value) }
-            }
-        }
+        runCatching { ctx.dataStore.edit { it[key] = value } }
 }

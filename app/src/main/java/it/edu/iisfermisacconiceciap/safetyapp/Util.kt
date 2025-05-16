@@ -21,7 +21,7 @@ class Util(private val ctx: Context) {
     fun incrementPreferencesCounter(key: String) =
         CoroutineScope(Dispatchers.Default).launch { PreferencesManager(ctx).incrementInt(key) }
 
-    fun doRequest(endpoint: String, process: (response: JSONObject) -> Unit) {
+    fun doRequest(endpoint: String, process: suspend (response: JSONObject) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             val connection = URL(BASEURL + endpoint).openConnection() as HttpURLConnection
             try {
