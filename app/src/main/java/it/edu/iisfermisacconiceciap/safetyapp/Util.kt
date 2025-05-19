@@ -15,6 +15,7 @@ import java.net.URL
 
 class Util(private val ctx: Context) {
     companion object {
+        //        const val BASEURL = "http://192.168.178.22:3500/"
         const val BASEURL = "http://172.20.1.13/safetyApp/"
     }
 

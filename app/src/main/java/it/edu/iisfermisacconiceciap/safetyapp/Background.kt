@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.PowerManager.WakeLock
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import java.time.Duration
@@ -26,7 +27,7 @@ class Background : Service() {
 
         // Stringa contente i secondi rimanenti di allarme disattivato, null => allarme in funzione
         fun getSnoozeLeft(): String? {
-            if (snoozeUntil.isAfter(Instant.now())) return null
+            if (snoozeUntil.isBefore(Instant.now())) return null
 
             val secsLeft = Duration.between(
                 Instant.now(), snoozeUntil
@@ -41,9 +42,7 @@ class Background : Service() {
     }
 
     private val util = Util(this)
-    private val wakeLock = getSystemService(PowerManager::class.java).newWakeLock(
-        PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
-    )
+    private lateinit var wakeLock: WakeLock
 
     // Funzione da eseguire ad intervallo regolare (*/2s)
     fun update() {
@@ -58,7 +57,7 @@ class Background : Service() {
                 Intent(
                     this@Background,
                     EmergencyActivity::class.java
-                ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
     }
@@ -73,6 +72,11 @@ class Background : Service() {
     }
 
     override fun onCreate() {
+        wakeLock = getSystemService(PowerManager::class.java).newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "Background::Lock"
+        )
+
         // È già in esecuzione un Background?
         if (running != null) return
         running = this

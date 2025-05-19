@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" /> <!-- NOTA: In alternativa si potrebbe usare https://developer.android.com/develop/background-work/services/fgs/service-types#system-exempted -->
     <!-- Per creare un foregroundService è necessario poter creare notifiche -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Per qualche motivo serve anche SYSTEM_ALTERT_WINDOW -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Per qualche motivo serve anche SYSTEM_ALERT_WINDOW -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- Prima o poi bisogna fare richieste https://developer.android.com/develop/connectivity/network-ops/connecting -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Potrebbe essere overkill -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Dobbiamo impedire alla CPU di dormire -->
@@ -18,9 +18,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/warning"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/warning"
         android:supportsRtl="true"
         android:theme="@style/Theme.SafetyApp"
         android:usesCleartextTraffic="true"
