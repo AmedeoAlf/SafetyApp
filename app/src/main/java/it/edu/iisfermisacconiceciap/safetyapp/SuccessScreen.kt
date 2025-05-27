@@ -3,9 +3,12 @@ package it.edu.iisfermisacconiceciap.safetyapp
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +34,12 @@ import java.time.Instant
 import java.util.Date
 
 @Preview(group = "ok", device = "id:tv_4k")
-@Preview(group = "ok", device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(
+    group = "ok",
+    device = "id:pixel_6",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    apiLevel = 35
+)
 @Composable
 fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
     var snoozeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
@@ -43,7 +51,9 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
     SafetyAppTheme {
         Surface(Modifier.fillMaxSize()) {
             Scaffold(
-                Modifier.fillMaxSize(),
+                Modifier
+                    .fillMaxSize()
+                    .padding(WindowInsets.safeDrawing.asPaddingValues()),
                 topBar = {
                     Column(
                         Modifier.fillMaxWidth(),
@@ -54,7 +64,9 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                 },
             ) {
                 Column(
-                    Modifier.fillMaxSize().padding(it),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(it),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {

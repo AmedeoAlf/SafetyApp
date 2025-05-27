@@ -20,7 +20,7 @@ import java.util.TimerTask
 class Background : Service() {
     companion object {
         var running: Background? = null
-        var currEmergency = "Nessuna emergenza"
+        var currEmergency = "Titolo emergenza"
         var currDescrizione = "Nessuna descrizione"
         var isEmergency = false
         var snoozeUntil: Instant = Instant.now()
