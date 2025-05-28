@@ -48,10 +48,7 @@ import java.time.Instant
 @Composable
 fun EmergencyScreen() {
     SafetyAppTheme {
-        var emergency by remember { mutableStateOf(Background.currEmergency) }
-        var desc by remember { mutableStateOf(Background.currDescrizione) }
         var timeLeft by remember { mutableStateOf(getSnoozeLeft()) }
-
         val orientation = LocalConfiguration.current.orientation
 //        var timeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
 
@@ -63,7 +60,7 @@ fun EmergencyScreen() {
                     Row(horizontalArrangement = Arrangement.SpaceEvenly) {
                         Button(
                             { snoozeUntil = Instant.now().plusSeconds(60 * 5) },
-                            Modifier.padding(20.dp)
+                            Modifier.padding(15.dp)
                         ) {
                             Text("Ignora per 5 minuti")
                         }
@@ -71,11 +68,13 @@ fun EmergencyScreen() {
                             "L'allarme non verrà mostrato per $timeLeft",
                             Modifier
                                 .align(Alignment.CenterVertically)
-                                .padding(20.dp)
+                                .padding(15.dp)
                         )
                     }
                 }) {
-                val mod = Modifier.fillMaxSize().padding(it)
+                val mod = Modifier
+                    .fillMaxSize()
+                    .padding(it)
                 when (orientation) {
                     Configuration.ORIENTATION_LANDSCAPE -> {
                         Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
@@ -84,17 +83,18 @@ fun EmergencyScreen() {
                                     .fillMaxHeight()
                                     .fillMaxWidth(0.4f)
                             )
-                            EmergencyDisplay(emergency, desc)
+                            EmergencyDisplay()
                         }
                     }
+
                     else -> {
                         Column(mod, Arrangement.SpaceEvenly, Alignment.CenterHorizontally) {
                             EmergencyPlan(
                                 Modifier
-                                    .fillMaxWidth()
                                     .fillMaxHeight(0.5f)
+                                    .fillMaxWidth()
                             )
-                            EmergencyDisplay(emergency, desc)
+                            EmergencyDisplay()
                         }
                     }
                 }
@@ -103,8 +103,6 @@ fun EmergencyScreen() {
         LaunchedEffect(key1 = Unit, block = {
             while (true) {
                 delay(200)
-                emergency = Background.currEmergency
-                desc = Background.currDescrizione
                 timeLeft = getSnoozeLeft()
             }
         })
@@ -112,7 +110,7 @@ fun EmergencyScreen() {
 }
 
 @Composable
-fun EmergencyDisplay(title: String, description: String, modifier: Modifier = Modifier) {
+fun EmergencyDisplay(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.Center,
@@ -135,12 +133,12 @@ fun EmergencyDisplay(title: String, description: String, modifier: Modifier = Mo
                 .alpha(blink)
         )
         Text(
-            title,
+            Background.currEmergency,
             style = MaterialTheme.typography.displayLarge,
             textAlign = TextAlign.Center
         )
         Text(
-            description, style = MaterialTheme.typography.displaySmall,
+            Background.currDescrizione, style = MaterialTheme.typography.displaySmall,
             textAlign = TextAlign.Center
         )
     }

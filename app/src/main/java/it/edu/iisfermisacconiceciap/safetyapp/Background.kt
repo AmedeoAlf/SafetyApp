@@ -10,7 +10,11 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
 import android.provider.Settings
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.MutableLiveData
 import java.time.Duration
 import java.time.Instant
 import java.util.Locale
@@ -20,10 +24,10 @@ import java.util.TimerTask
 class Background : Service() {
     companion object {
         var running: Background? = null
-        var currEmergency = "Titolo emergenza"
-        var currDescrizione = "Nessuna descrizione"
-        var isEmergency = false
-        var snoozeUntil: Instant = Instant.now()
+        var currEmergency by mutableStateOf("Nessuna emergenza")
+        var currDescrizione by mutableStateOf("Nessuna descrizione")
+        var isEmergency = MutableLiveData<Boolean>(false)
+        var snoozeUntil: Instant by mutableStateOf(Instant.now())
 
         // Stringa contente i secondi rimanenti di allarme disattivato, null => allarme in funzione
         fun getSnoozeLeft(): String? {
@@ -48,16 +52,15 @@ class Background : Service() {
     fun update() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
-//            println(response.toString(0))
-            isEmergency = response.getInt("STATO") != 0
+            val receivedEmergency = (response.getInt("STATO") != 0)
+            if (isEmergency.value!! != receivedEmergency) isEmergency.value = receivedEmergency
             currEmergency = response.getString("MESSAGGIO")
             currDescrizione = response.getString("DESCRIZIONE")
 
-            if (isEmergency && Instant.now().isAfter(snoozeUntil)) startActivity(
+            if (receivedEmergency && Instant.now().isAfter(snoozeUntil)) startActivity(
                 Intent(
-                    this@Background,
-                    EmergencyActivity::class.java
-                ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    this@Background, EmergencyActivity::class.java
+                ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
             )
         }
     }
@@ -73,8 +76,7 @@ class Background : Service() {
 
     override fun onCreate() {
         wakeLock = getSystemService(PowerManager::class.java).newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "Background::Lock"
+            PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
         )
 
         // È già in esecuzione un Background?
@@ -89,8 +91,8 @@ class Background : Service() {
 
         // Crea la notifica per il foreground service
         val notification = NotificationCompat.Builder(this, "overlay")
-            .setContentTitle("Disabilita questa notifica")
-            .setSmallIcon(R.drawable.warning).setContentIntent(
+            .setContentTitle("Disabilita questa notifica").setSmallIcon(R.drawable.warning)
+            .setContentIntent(
                 PendingIntent.getActivity(
                     this, 1, Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(
                         Settings.EXTRA_APP_PACKAGE,

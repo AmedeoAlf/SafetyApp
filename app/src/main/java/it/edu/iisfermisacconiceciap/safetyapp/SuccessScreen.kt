@@ -34,12 +34,7 @@ import java.time.Instant
 import java.util.Date
 
 @Preview(group = "ok", device = "id:tv_4k")
-@Preview(
-    group = "ok",
-    device = "id:pixel_6",
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    apiLevel = 35
-)
+@Preview(group = "ok", device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
     var snoozeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
@@ -117,10 +112,7 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                                 preferencesManager?.getInt("total_unreachable").toString()
                             val lastResetTimestamp = preferencesManager?.getInstant("lastReset")
                             lastReset =
-                                if (lastResetTimestamp == null) "mai" else Date.from(
-                                    lastResetTimestamp
-                                )
-                                    .toString()
+                                if (lastResetTimestamp == null) "mai" else Date.from(lastResetTimestamp).toString()
                             snoozeLeft = Background.getSnoozeLeft()
                             delay(100)
                         }
