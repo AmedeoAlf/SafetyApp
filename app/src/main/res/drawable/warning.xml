@@ -1,3 +1,4 @@
+<!-- TODO dimensioni max 200x200 https://developer.android.com/studio/write/vector-asset-studio#when -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="1003dp"

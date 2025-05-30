@@ -40,8 +40,9 @@ import androidx.compose.ui.unit.dp
 import it.edu.iisfermisacconiceciap.safetyapp.Background.Companion.getSnoozeLeft
 import it.edu.iisfermisacconiceciap.safetyapp.Background.Companion.snoozeUntil
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
-import kotlinx.coroutines.delay
 import java.time.Instant
+import java.util.Timer
+import kotlin.concurrent.scheduleAtFixedRate
 
 @Preview(device = "id:tv_4k")
 @Preview(device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
@@ -49,7 +50,6 @@ import java.time.Instant
 fun EmergencyScreen() {
     SafetyAppTheme {
         var timeLeft by remember { mutableStateOf(getSnoozeLeft()) }
-        val orientation = LocalConfiguration.current.orientation
 //        var timeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
 
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -72,40 +72,36 @@ fun EmergencyScreen() {
                         )
                     }
                 }) {
+
                 val mod = Modifier
                     .fillMaxSize()
                     .padding(it)
-                when (orientation) {
-                    Configuration.ORIENTATION_LANDSCAPE -> {
-                        Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-                            EmergencyPlan(
-                                Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(0.4f)
-                            )
-                            EmergencyDisplay()
-                        }
+                if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
+                        EmergencyPlan(
+                            Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.4f)
+                        )
+                        EmergencyDisplay()
                     }
-
-                    else -> {
-                        Column(mod, Arrangement.SpaceEvenly, Alignment.CenterHorizontally) {
-                            EmergencyPlan(
-                                Modifier
-                                    .fillMaxHeight(0.5f)
-                                    .fillMaxWidth()
-                            )
-                            EmergencyDisplay()
-                        }
+                } else {
+                    Column(mod, Arrangement.SpaceEvenly, Alignment.CenterHorizontally) {
+                        EmergencyPlan(
+                            Modifier
+                                .fillMaxHeight(0.5f)
+                                .fillMaxWidth()
+                        )
+                        EmergencyDisplay()
                     }
                 }
             }
         }
-        LaunchedEffect(key1 = Unit, block = {
-            while (true) {
-                delay(200)
+        LaunchedEffect(Unit) {
+            Timer().scheduleAtFixedRate(0L, 100L) {
                 timeLeft = getSnoozeLeft()
             }
-        })
+        }
     }
 }
 

@@ -19,7 +19,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 import java.util.Timer
-import java.util.TimerTask
+import kotlin.concurrent.scheduleAtFixedRate
 
 class Background : Service() {
     companion object {
@@ -53,7 +53,7 @@ class Background : Service() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
             val receivedEmergency = (response.getInt("STATO") != 0)
-            if (isEmergency.value!! != receivedEmergency) isEmergency.value = receivedEmergency
+            if (isEmergency.value!! != receivedEmergency) isEmergency.postValue(receivedEmergency)
             currEmergency = response.getString("MESSAGGIO")
             currDescrizione = response.getString("DESCRIZIONE")
 
@@ -105,11 +105,7 @@ class Background : Service() {
         println("Started foreground service")
 
         // Chiama la funzione update ogni 2s per tutta la vita del servizio
-        Timer().schedule(
-            object : TimerTask() {
-                override fun run() = update()
-            }, 0, 2000
-        )
+        Timer().scheduleAtFixedRate(0L, 2000L) { update() }
 
         return super.onCreate()
     }

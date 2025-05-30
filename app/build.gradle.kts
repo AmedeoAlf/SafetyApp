@@ -12,8 +12,8 @@ android {
         applicationId = "it.edu.iisfermisacconiceciap.safetyapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.1"
+        versionCode = 3
+        versionName = "0.2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 //    implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.runtime.livedata)
 
 
     testImplementation(libs.junit)
