@@ -75,7 +75,7 @@ fun StatusWidget() {
             Text(h2, style = MaterialTheme.typography.bodyLarge)
         }
         LaunchedEffect(Unit) {
-            Util.lastThrownException.collectLatest { e ->
+            Util.lastExceptionThrown.collectLatest { e ->
                 when {
                     e != null -> {
                         dotColor = Color.Red
@@ -123,7 +123,7 @@ fun StatCard(preferencesManager: PreferencesManager) {
                 .padding(15.dp)
                 .width(500.dp),
         ) {
-            Text("Ultima eccezione: $lastException")
+            Text("Ultimo errore: $lastException")
             Text("Connessioni avvenute con successo: $totalSuccessful")
             Text("Connessioni fallite: $totalUnreachable")
             Text("Ultimo reset: $lastReset")
@@ -142,7 +142,7 @@ fun StatCard(preferencesManager: PreferencesManager) {
         }
 
         LaunchedEffect(lastReset) {
-            Util.lastThrownException.collectLatest { e ->
+            Util.lastExceptionThrown.collectLatest { e ->
                 lastException = e?.message ?: "Nessuna"
                 totalSuccessful = preferencesManager.getInt("total_connections").toString()
                 totalUnreachable = preferencesManager.getInt("total_unreachable").toString()

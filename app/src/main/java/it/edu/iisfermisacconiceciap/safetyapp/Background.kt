@@ -27,6 +27,7 @@ class Background : Service() {
         var currEmergency by mutableStateOf("Nessuna emergenza")
         var currDescrizione by mutableStateOf("Nessuna descrizione")
         var isEmergency = MutableLiveData<Boolean>(false)
+        var serverError = MutableLiveData<String?>(null)
         var snoozeUntil: Instant by mutableStateOf(Instant.now())
 
         // Stringa contente i secondi rimanenti di allarme disattivato, null => allarme in funzione
@@ -52,6 +53,7 @@ class Background : Service() {
     fun update() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.doRequest("requestSchoolStateJs.php") { response ->
+            serverError.postValue(if (response.has("ERROR")) response.getString("ERROR") else null)
             val receivedEmergency = (response.getInt("STATO") != 0)
             if (isEmergency.value!! != receivedEmergency) isEmergency.postValue(receivedEmergency)
             currEmergency = response.getString("MESSAGGIO")
