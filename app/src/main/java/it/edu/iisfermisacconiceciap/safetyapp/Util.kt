@@ -17,7 +17,7 @@ import java.net.URL
 class Util(private val ctx: Context) {
     companion object {
         val BASEURL =
-            if (true) "http://192.168.178.22:3500/" else "http://172.20.1.13/safetyApp/"
+            if (false) "http://192.168.178.22:3500/" else "http://172.20.1.13/safetyApp/"
 
         var lastExceptionThrown = MutableSharedFlow<Exception?>(
             replay = 1,
