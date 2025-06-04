@@ -144,8 +144,8 @@ fun StatCard(preferencesManager: PreferencesManager) {
         LaunchedEffect(lastReset) {
             Util.lastExceptionThrown.collectLatest { e ->
                 lastException = e?.message ?: "Nessuna"
-                totalSuccessful = preferencesManager.getInt("total_connections").toString()
-                totalUnreachable = preferencesManager.getInt("total_unreachable").toString()
+                totalSuccessful = (preferencesManager.getInt("total_connections") ?: 0).toString()
+                totalUnreachable = (preferencesManager.getInt("total_unreachable") ?: 0).toString()
                 val lastResetTimestamp = preferencesManager.getInstant("lastReset")
                 lastReset = if (lastResetTimestamp == null) "mai" else Date.from(
                     lastResetTimestamp

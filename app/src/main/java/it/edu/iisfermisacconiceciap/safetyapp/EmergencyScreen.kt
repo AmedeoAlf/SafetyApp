@@ -57,7 +57,7 @@ fun EmergencyScreen() {
                 Modifier
                     .fillMaxSize()
                     .padding(WindowInsets.safeDrawing.asPaddingValues()), bottomBar = {
-                    Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Row(horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                         Button(
                             { snoozeUntil = Instant.now().plusSeconds(60 * 5) },
                             Modifier.padding(15.dp)

@@ -28,20 +28,44 @@ class Util(private val ctx: Context) {
     fun incrementPreferencesCounter(key: String) =
         CoroutineScope(Dispatchers.Default).launch { PreferencesManager(ctx).incrementInt(key) }
 
+    @Throws(Exception::class)
+    fun httpGET(url: URL): String {
+        val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 2000
+        connection.readTimeout = 1000
+
+        return try {
+            connection.inputStream.reader().readText()
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     // TODO log more usefully
+    private var requesting = false
     fun doRequest(endpoint: String, process: suspend (response: JSONObject) -> Unit) {
+        if (requesting) return
         CoroutineScope(Dispatchers.IO).launch {
-            val connection = URL(BASEURL + endpoint).openConnection().apply {
-                connectTimeout = 3000
-                readTimeout = 3000
-            } as HttpURLConnection
-            val response = connection.inputStream.reader().readText()
-            runCatching {
+            requesting = true
+
+            val response = try {
+                httpGET(URL(BASEURL + endpoint))
+            } catch (e: Exception) {
+                when (e) {
+                    is ConnectException -> {
+                        incrementPreferencesCounter("total_unreachable")
+                    }
+                }
+                lastExceptionThrown.emit(e)
+                return@launch
+            }
+
+            try {
                 process(JSONTokener(response).nextValue() as JSONObject)
                 incrementPreferencesCounter("total_connections")
                 lastExceptionThrown.emit(null)
-            }.onFailure { e ->
-                var e = e as Exception
+            } catch (e: Exception) {
+                var e = e
                 when (e) {
                     is SocketTimeoutException, is ConnectException -> {
                         incrementPreferencesCounter("total_unreachable")
@@ -53,7 +77,8 @@ class Util(private val ctx: Context) {
                 }
                 lastExceptionThrown.emit(e)
             }
-            connection.disconnect()
+        }.invokeOnCompletion {
+            requesting = false
         }
     }
 
