@@ -1,6 +1,9 @@
 package it.edu.iisfermisacconiceciap.safetyapp
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -16,6 +19,11 @@ const val PREFERENCES_NAME = "prefs"
 val Context.dataStore by preferencesDataStore(PREFERENCES_NAME)
 
 class PreferencesManager(private val ctx: Context) {
+    companion object {
+        var lastUpdate: Instant by mutableStateOf(Instant.now())
+            private set
+    }
+
     suspend fun getInt(name: String): Int? =
         get(intPreferencesKey(name))
 
@@ -38,12 +46,16 @@ class PreferencesManager(private val ctx: Context) {
 
     suspend fun incrementInt(name: String) {
         val key = intPreferencesKey(name)
-        runCatching { ctx.dataStore.edit { it[key] = (it[key] ?: 0) + 1 } }
+        runCatching {
+            ctx.dataStore.edit {
+                it[key] = (it[key] ?: 0) + 1; lastUpdate = Instant.now()
+            }
+        }
     }
 
     suspend fun <T> get(key: Preferences.Key<T>): T? =
         runCatching { ctx.dataStore.data.first()[key] }.getOrNull()
 
     suspend fun <T> set(key: Preferences.Key<T>, value: T) =
-        runCatching { ctx.dataStore.edit { it[key] = value } }
+        runCatching { ctx.dataStore.edit { it[key] = value; lastUpdate = Instant.now() } }
 }

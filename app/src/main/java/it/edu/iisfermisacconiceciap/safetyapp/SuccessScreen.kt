@@ -26,6 +26,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.runBlocking
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -47,63 +47,56 @@ import java.util.Date
 import java.util.Timer
 import kotlin.concurrent.scheduleAtFixedRate
 
-@Composable
-fun StatusWidget(lastResponse: ResponseData) {
-    var dotColor by remember { mutableStateOf(Color.Gray) }
-    var h1 by remember { mutableStateOf("Recupero informazioni") }
-    var h2 by remember { mutableStateOf("Solo un secondo") }
-    Row(
-        Modifier
-            .height(IntrinsicSize.Min)
-            .padding(8.dp)
-            .width(600.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Spacer(Modifier.width(5.dp))
-        Box(
-            Modifier
-                .size(12.dp)
-                .clip(CircleShape)
-                .background(dotColor)
-                .align(Alignment.CenterVertically)
-        )
-        VerticalDivider(Modifier.padding(10.dp))
-        Column(Modifier.padding(10.dp)) {
-            Text(h1, style = MaterialTheme.typography.headlineLarge)
-            Text(h2, style = MaterialTheme.typography.bodyLarge)
+enum class BriefStatus(val dotColor: Color, val h1: () -> String, val h2: () -> String) {
+    OK(Color.Green, { "SafetyApp è in funzione" }, { "Nessuna emergenza in corso" }),
+    EMERGENCY(
+        Color.Yellow,
+        { "Emergenza in corso" },
+        { "${FetchEmergencyService.lastResponse.currEmergency}\n${FetchEmergencyService.lastResponse.currDescrizione}" }),
+    NETWORK_ERR(
+        Color.Red,
+        { "Impossibile connettersi al server" },
+        { "Assicurati di essere connesso alla rete della scuola" }),
+    OTHER_ERR(
+        Color.Red,
+        { "Errore del server" },
+        { "Controlla le informazioni di debug" }
+    );
+
+    companion object {
+        fun pick(): BriefStatus = when {
+            Util.lastExceptionThrown.value != null -> when (Util.lastExceptionThrown.value) {
+                is SocketTimeoutException, is ConnectException -> NETWORK_ERR
+                else -> OTHER_ERR
+            }
+
+            FetchEmergencyService.lastResponse.error != null -> OTHER_ERR
+            FetchEmergencyService.lastResponse.isEmergency -> EMERGENCY
+            else -> OK
         }
-        LaunchedEffect(Unit) {
-            Util.lastExceptionThrown.collectLatest { e ->
-                when {
-                    e != null -> {
-                        dotColor = Color.Red
-                        when (e) {
-                            is ConnectException, is SocketTimeoutException -> {
-                                h1 = "Impossibile connettersi al server"
-                                h2 = "Assicurati di essere connesso alla rete della scuola"
-                            }
+    }
 
-                            else -> {
-                                h1 = "Errore del server"
-                                h2 = "Controlla informazioni di debug per altro"
-                            }
-                        }
-                    }
-
-                    !lastResponse.isEmergency -> {
-                        dotColor = Color.Green
-                        h1 = "SafetyApp è in funzione"
-                        h2 = "Nessuna emergenza in corso"
-                    }
-
-                    else -> {
-                        dotColor = Color.Yellow
-                        h1 = "Emergenza in corso"
-                        h2 =
-                            "${lastResponse.currEmergency}\n${lastResponse.currDescrizione}"
-                    }
-                }
-
+    @Composable
+    fun Widget() {
+        Row(
+            Modifier
+                .height(IntrinsicSize.Min)
+                .padding(8.dp)
+                .width(600.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Spacer(Modifier.width(5.dp))
+            Box(
+                Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(dotColor)
+                    .align(Alignment.CenterVertically)
+            )
+            VerticalDivider(Modifier.padding(10.dp))
+            Column(Modifier.padding(10.dp)) {
+                Text(h1(), style = MaterialTheme.typography.headlineLarge)
+                Text(h2(), style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -111,10 +104,10 @@ fun StatusWidget(lastResponse: ResponseData) {
 
 @Composable
 fun StatCard(preferencesManager: PreferencesManager) {
-    var lastException by remember { mutableStateOf("---") }
     var totalSuccessful by remember { mutableStateOf("---") }
     var totalUnreachable by remember { mutableStateOf("---") }
     var lastReset by remember { mutableStateOf("---") }
+    val lastException by Util.lastExceptionThrown.observeAsState()
 
     Card(Modifier.padding(40.dp)) {
         Column(
@@ -122,7 +115,8 @@ fun StatCard(preferencesManager: PreferencesManager) {
                 .padding(15.dp)
                 .width(500.dp),
         ) {
-            Text("Ultimo errore: $lastException")
+            Text("Ultima risposta: ${FetchEmergencyService.lastResponse}")
+            Text("Ultima eccezione: $lastException")
             Text("Connessioni avvenute con successo: $totalSuccessful")
             Text("Connessioni fallite: $totalUnreachable")
             Text("Ultimo reset: $lastReset")
@@ -140,16 +134,13 @@ fun StatCard(preferencesManager: PreferencesManager) {
             }) { Text("Reset statistiche") }
         }
 
-        LaunchedEffect(lastReset) {
-            Util.lastExceptionThrown.collectLatest { e ->
-                lastException = e?.message ?: "Nessuna"
-                totalSuccessful = (preferencesManager.getInt("total_connections") ?: 0).toString()
-                totalUnreachable = (preferencesManager.getInt("total_unreachable") ?: 0).toString()
-                val lastResetTimestamp = preferencesManager.getInstant("lastReset")
-                lastReset = if (lastResetTimestamp == null) "mai" else Date.from(
-                    lastResetTimestamp
-                ).toString()
-            }
+        LaunchedEffect(PreferencesManager.lastUpdate) {
+            totalSuccessful = (preferencesManager.getInt("total_connections") ?: 0).toString()
+            totalUnreachable = (preferencesManager.getInt("total_unreachable") ?: 0).toString()
+            val lastResetTimestamp = preferencesManager.getInstant("lastReset")
+            lastReset = if (lastResetTimestamp == null) "mai" else Date.from(
+                lastResetTimestamp
+            ).toString()
         }
     }
 }
@@ -182,7 +173,8 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    StatusWidget(FetchEmergencyService.lastResponse.value!!)
+                    BriefStatus.pick().Widget()
+
                     if (snoozeLeft != null) Button({
                         FetchEmergencyService.snoozeUntil = Instant.now().plusSeconds(60 * 5)
                     }) {

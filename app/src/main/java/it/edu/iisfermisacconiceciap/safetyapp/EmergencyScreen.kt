@@ -53,7 +53,9 @@ fun EmergencyScreen() {
         ) {
 
 
-            val mod = Modifier.fillMaxSize().safeContentPadding()
+            val mod = Modifier
+                .fillMaxSize()
+                .safeContentPadding()
             if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
                     EmergencyPlan(
@@ -132,12 +134,12 @@ fun EmergencyDisplay() {
                     .alpha(blink)
             )
             Text(
-                FetchEmergencyService.lastResponse.value!!.currEmergency,
+                FetchEmergencyService.lastResponse.currEmergency,
                 style = MaterialTheme.typography.displayLarge,
                 textAlign = TextAlign.Center
             )
             Text(
-                FetchEmergencyService.lastResponse.value!!.currDescrizione,
+                FetchEmergencyService.lastResponse.currDescrizione,
                 style = MaterialTheme.typography.displaySmall,
                 textAlign = TextAlign.Center
             )

@@ -10,9 +10,9 @@ import androidx.activity.enableEdgeToEdge
 class EmergencyActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        FetchEmergencyService.lastResponse.observe(this) { if (!it.isEmergency) finish() }
         enableEdgeToEdge()
         setContent {
+            if (!FetchEmergencyService.lastResponse.isEmergency) finish()
             EmergencyScreen()
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

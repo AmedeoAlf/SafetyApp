@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.MutableLiveData
 import org.json.JSONObject
 import java.time.Duration
 import java.time.Instant
@@ -22,17 +21,26 @@ import java.util.Locale
 import java.util.Timer
 import kotlin.concurrent.scheduleAtFixedRate
 
-data class ResponseData(
+data class EmergencyState(
     val isEmergency: Boolean,
     val currEmergency: String,
     val currDescrizione: String,
-    val serverError: String?,
+    val error: String?,
 ) {
-    fun updateWith(json: JSONObject): ResponseData {
-        val stato = json.getIntOrNull("STATO")
-        return ResponseData(
-            isEmergency = if (stato == null) this.isEmergency else stato != 0,
-            serverError = json.getStringOrNull("ERROR"),
+    fun updateWith(json: JSONObject): EmergencyState {
+        val error = when {
+            json.has("ERROR") -> json.getString("ERROR")
+            !json.has("STATO") -> "No STATO property"
+            else -> null
+        }
+        return if (error == null) EmergencyState(
+            isEmergency = json.getInt("STATO") != 0,
+            error = null,
+            currEmergency = json.getStringOrNull("MESSAGGIO") ?: "-",
+            currDescrizione = json.getStringOrNull("DESCRIZIONE") ?: "-"
+        ) else EmergencyState(
+            isEmergency = json.getIntOrNull("STATO")?.let { it != 0 } ?: this.isEmergency,
+            error = error,
             currEmergency = json.getStringOrNull("MESSAGGIO") ?: this.currEmergency,
             currDescrizione = json.getStringOrNull("DESCRIZIONE") ?: this.currDescrizione
         )
@@ -43,14 +51,15 @@ class FetchEmergencyService : Service() {
     companion object {
         var running: FetchEmergencyService? = null
 
-        val lastResponse = MutableLiveData<ResponseData>(
-            ResponseData(
+        var lastResponse by mutableStateOf(
+            EmergencyState(
                 isEmergency = false,
                 currEmergency = "Nessuna emergenza",
                 currDescrizione = "Nessuna descrizione",
-                serverError = null
+                error = "No real response"
             )
         )
+            private set
 
         var snoozeUntil: Instant by mutableStateOf(Instant.now())
 
@@ -77,10 +86,11 @@ class FetchEmergencyService : Service() {
     fun fetch() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
         util.dispatchRequest("requestSchoolStateJs.php") { response ->
-            val parsed = lastResponse.value!!.updateWith(response)
-            lastResponse.postValue(parsed)
+            lastResponse = lastResponse.updateWith(response)
 
-            if (parsed.isEmergency && Instant.now().isAfter(snoozeUntil)) startActivity(
+            if (lastResponse.isEmergency && lastResponse.error == null && Instant.now()
+                    .isAfter(snoozeUntil)
+            ) startActivity(
                 Intent(
                     this@FetchEmergencyService, EmergencyActivity::class.java
                 ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)

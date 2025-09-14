@@ -1,11 +1,11 @@
 package it.edu.iisfermisacconiceciap.safetyapp
 
 import android.content.Context
+import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import org.json.JSONException
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -22,19 +22,20 @@ fun JSONObject.getIntOrNull(key: String): Int? {
     return if (has(key)) getInt(key) else null
 }
 
-class Util(private val ctx: Context) {
+class Util(ctx: Context) {
+    private val prefs = PreferencesManager(ctx)
+
     companion object {
         val BASEURL =
             if (false) "http://192.168.178.78:3500/" else "http://172.20.1.13/safetyApp/"
 
-        var lastExceptionThrown = MutableSharedFlow<Exception?>(
-            replay = 1,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
+        var lastExceptionThrown = MutableLiveData<Exception?>(null)
+
+        private val requesting = Mutex(false)
     }
 
     fun incrementPreferencesCounter(key: String) =
-        CoroutineScope(Dispatchers.Default).launch { PreferencesManager(ctx).incrementInt(key) }
+        CoroutineScope(Dispatchers.Default).launch { prefs.incrementInt(key) }
 
     @Throws(Exception::class)
     fun httpGET(url: URL): String {
@@ -49,44 +50,42 @@ class Util(private val ctx: Context) {
         }
     }
 
-    // TODO log more usefully
-    private var requesting = false
     fun dispatchRequest(endpoint: String, process: suspend (response: JSONObject) -> Unit) {
-        if (requesting) return
         CoroutineScope(Dispatchers.IO).launch {
-            requesting = true
-
-            val response = try {
-                httpGET(URL(BASEURL + endpoint))
-            } catch (e: Exception) {
-                when (e) {
-                    is ConnectException -> {
-                        incrementPreferencesCounter("total_unreachable")
-                    }
-                }
-                lastExceptionThrown.emit(e)
-                return@launch
-            }
+            if (!requesting.tryLock(this@Util)) return@launch
 
             try {
-                process(JSONTokener(response).nextValue() as JSONObject)
-                incrementPreferencesCounter("total_connections")
-                lastExceptionThrown.emit(null)
-            } catch (e: Exception) {
-                var e = e
-                when (e) {
-                    is SocketTimeoutException, is ConnectException -> {
-                        incrementPreferencesCounter("total_unreachable")
+                val response = try {
+                    httpGET(URL(BASEURL + endpoint))
+                } catch (e: Exception) {
+                    when (e) {
+                        is ConnectException -> {
+                            incrementPreferencesCounter("total_unreachable")
+                        }
                     }
-
-                    is JSONException -> {
-                        e = JSONException("${e.message} in $response")
-                    }
+                    throw e
                 }
-                lastExceptionThrown.emit(e)
+
+                try {
+                    process(JSONTokener(response).nextValue() as JSONObject)
+                    incrementPreferencesCounter("total_connections")
+                } catch (e: Exception) {
+                    when (e) {
+                        is SocketTimeoutException, is ConnectException -> incrementPreferencesCounter(
+                            "total_unreachable"
+                        )
+
+                        is JSONException -> throw JSONException("${e.message} in $response")
+                    }
+                    throw e
+                }
+
+                lastExceptionThrown.postValue(null)
+            } catch (e: Exception) {
+                lastExceptionThrown.postValue(e)
             }
         }.invokeOnCompletion {
-            requesting = false
+            requesting.unlock(this@Util)
         }
     }
 
