@@ -14,10 +14,18 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
 
+fun JSONObject.getStringOrNull(key: String): String? {
+    return if (has(key)) getString(key) else null
+}
+
+fun JSONObject.getIntOrNull(key: String): Int? {
+    return if (has(key)) getInt(key) else null
+}
+
 class Util(private val ctx: Context) {
     companion object {
         val BASEURL =
-            if (false) "http://192.168.178.22:3500/" else "http://172.20.1.13/safetyApp/"
+            if (false) "http://192.168.178.78:3500/" else "http://172.20.1.13/safetyApp/"
 
         var lastExceptionThrown = MutableSharedFlow<Exception?>(
             replay = 1,
@@ -43,7 +51,7 @@ class Util(private val ctx: Context) {
 
     // TODO log more usefully
     private var requesting = false
-    fun doRequest(endpoint: String, process: suspend (response: JSONObject) -> Unit) {
+    fun dispatchRequest(endpoint: String, process: suspend (response: JSONObject) -> Unit) {
         if (requesting) return
         CoroutineScope(Dispatchers.IO).launch {
             requesting = true

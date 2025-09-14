@@ -25,12 +25,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
 
-@Composable
-fun PermissionCard(card: PermissionCard) {
-    Card(Modifier.padding(6.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(card.description, Modifier.fillMaxWidth())
-            Button(card.fix, Modifier.align(Alignment.End)) { Text(card.btnLabel) }
+
+class PermissionCard(
+    val shouldTrigger: () -> Boolean,
+    val description: String,
+    val btnLabel: String,
+    val fix: () -> Unit
+) {
+    @Composable
+    fun Card() {
+        Card(Modifier.padding(6.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(description, Modifier.fillMaxWidth())
+                Button(fix, Modifier.align(Alignment.End)) { Text(btnLabel) }
+            }
         }
     }
 }
@@ -40,8 +48,9 @@ fun PermissionCard(card: PermissionCard) {
 @Composable
 fun MissingPermScreen(
     cards: List<PermissionCard> = listOf(
-        PermissionCard("Permesso mancante", "Correggi") {},
+        PermissionCard({ true }, "Permesso mancante", "Correggi") {},
         PermissionCard(
+            { true },
             "Permesso mancante molto più lungo vediamo come appare questa scritta all'interno della card",
             "Apri impostazioni"
         ) {},
@@ -58,9 +67,7 @@ fun MissingPermScreen(
                 LazyVerticalGrid(
                     GridCells.Adaptive(300.dp), contentPadding = PaddingValues(10.dp)
                 ) {
-                    items(cards) { card ->
-                        PermissionCard(card)
-                    }
+                    items(cards) { card -> card.Card() }
                 }
             }
         }

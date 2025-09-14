@@ -8,7 +8,7 @@ class AutostartReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        context.startForegroundService(Intent(context, Background::class.java))
+        context.startForegroundService(Intent(context, FetchEmergencyService::class.java))
         println("SafetyApp avviata automaticamente")
     }
 }

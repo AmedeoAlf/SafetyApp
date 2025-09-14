@@ -15,17 +15,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 
-open class PermissionCard(
-    val description: String, val btnLabel: String, val fix: () -> Unit
-)
-
-class EvaluablePermissionCard(
-    val shouldTrigger: () -> Boolean,
-    description: String,
-    btnLabel: String,
-    fix: () -> Unit
-) : PermissionCard(description, btnLabel, fix)
-
 
 class MainActivity : ComponentActivity() {
     private fun refreshMenu() {
@@ -44,7 +33,10 @@ class MainActivity : ComponentActivity() {
 
         createNotificationChannel()
         // Chiedi i permessi per le notifiche
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED
+        ) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) refreshMenu()
             }.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -54,17 +46,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSuccessScreen() {
-        startForegroundService(Intent(this, Background::class.java))
+        startForegroundService(Intent(this, FetchEmergencyService::class.java))
         setContent { SuccessScreen(PreferencesManager(this)) }
     }
 
-    private fun showErrorScreen(cards: List<PermissionCard>) {
+    private fun showErrorScreen(cards: List<PermissionCard>) =
         setContent { MissingPermScreen(cards) }
-    }
 
     @SuppressLint("BatteryLife")
     val permissionCards = listOf(
-        EvaluablePermissionCard(
+        PermissionCard(
             { !Settings.canDrawOverlays(this) },
             "Abilita SafetyApp in \"Mostra sopra altre app\" per mostrare l'allarme",
             "Apri impostazioni"
@@ -76,7 +67,7 @@ class MainActivity : ComponentActivity() {
                 )
             )
         },
-        EvaluablePermissionCard(
+        PermissionCard(
             {
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(
                     android.Manifest.permission.POST_NOTIFICATIONS
@@ -90,7 +81,7 @@ class MainActivity : ComponentActivity() {
                 )
             )
         },
-        EvaluablePermissionCard(
+        PermissionCard(
             {
                 !getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(
                     packageName

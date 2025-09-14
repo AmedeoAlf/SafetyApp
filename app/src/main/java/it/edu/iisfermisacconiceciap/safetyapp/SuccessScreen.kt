@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -50,7 +48,7 @@ import java.util.Timer
 import kotlin.concurrent.scheduleAtFixedRate
 
 @Composable
-fun StatusWidget() {
+fun StatusWidget(lastResponse: ResponseData) {
     var dotColor by remember { mutableStateOf(Color.Gray) }
     var h1 by remember { mutableStateOf("Recupero informazioni") }
     var h2 by remember { mutableStateOf("Solo un secondo") }
@@ -92,7 +90,7 @@ fun StatusWidget() {
                         }
                     }
 
-                    Background.isEmergency.value == false -> {
+                    !lastResponse.isEmergency -> {
                         dotColor = Color.Green
                         h1 = "SafetyApp è in funzione"
                         h2 = "Nessuna emergenza in corso"
@@ -101,7 +99,8 @@ fun StatusWidget() {
                     else -> {
                         dotColor = Color.Yellow
                         h1 = "Emergenza in corso"
-                        h2 = "${Background.currEmergency}\n${Background.currDescrizione}"
+                        h2 =
+                            "${lastResponse.currEmergency}\n${lastResponse.currDescrizione}"
                     }
                 }
 
@@ -159,7 +158,7 @@ fun StatCard(preferencesManager: PreferencesManager) {
 @Preview(group = "ok", device = "id:pixel_6", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
-    var snoozeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
+    var snoozeLeft by remember { mutableStateOf(FetchEmergencyService.getSnoozeLeft()) }
     var openDialog by remember { mutableStateOf(false) }
 
     SafetyAppTheme {
@@ -167,7 +166,7 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
             Scaffold(
                 Modifier
                     .fillMaxSize()
-                    .padding(WindowInsets.safeDrawing.asPaddingValues()),
+                    .safeDrawingPadding(),
                 topBar = {
                     Column(
                         Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
@@ -183,9 +182,9 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    StatusWidget()
+                    StatusWidget(FetchEmergencyService.lastResponse.value!!)
                     if (snoozeLeft != null) Button({
-                        Background.snoozeUntil = Instant.now().plusSeconds(60 * 5)
+                        FetchEmergencyService.snoozeUntil = Instant.now().plusSeconds(60 * 5)
                     }) {
                         Text("Allarme inibito per $snoozeLeft")
                     }
@@ -198,7 +197,7 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                     }
                     LaunchedEffect(Unit) {
                         Timer().scheduleAtFixedRate(0L, 100L) {
-                            snoozeLeft = Background.getSnoozeLeft()
+                            snoozeLeft = FetchEmergencyService.getSnoozeLeft()
                         }
                     }
                 }

@@ -43,7 +43,7 @@
             android:exported="false"
             android:theme="@style/Theme.SafetyApp" /> <!-- Cheap solution pt. 2 -->
         <service
-            android:name=".Background"
+            android:name=".FetchEmergencyService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse" />

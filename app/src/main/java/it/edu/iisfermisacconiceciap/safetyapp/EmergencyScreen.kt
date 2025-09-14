@@ -10,13 +10,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -37,8 +35,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import it.edu.iisfermisacconiceciap.safetyapp.Background.Companion.getSnoozeLeft
-import it.edu.iisfermisacconiceciap.safetyapp.Background.Companion.snoozeUntil
+import it.edu.iisfermisacconiceciap.safetyapp.FetchEmergencyService.Companion.getSnoozeLeft
+import it.edu.iisfermisacconiceciap.safetyapp.FetchEmergencyService.Companion.snoozeUntil
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
 import java.time.Instant
 import java.util.Timer
@@ -49,94 +47,101 @@ import kotlin.concurrent.scheduleAtFixedRate
 @Composable
 fun EmergencyScreen() {
     SafetyAppTheme {
-        var timeLeft by remember { mutableStateOf(getSnoozeLeft()) }
-//        var timeLeft by remember { mutableStateOf(Background.getSnoozeLeft()) }
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
 
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                Modifier
-                    .fillMaxSize()
-                    .padding(WindowInsets.safeDrawing.asPaddingValues()), bottomBar = {
-                    Row(horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
-                        Button(
-                            { snoozeUntil = Instant.now().plusSeconds(60 * 5) },
-                            Modifier.padding(15.dp)
-                        ) {
-                            Text("Ignora per 5 minuti")
-                        }
-                        if (timeLeft != null) Text(
-                            "L'allarme non verrà mostrato per $timeLeft",
-                            Modifier
-                                .align(Alignment.CenterVertically)
-                                .padding(15.dp)
-                        )
-                    }
-                }) {
 
-                val mod = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-                if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-                        EmergencyPlan(
-                            Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(0.4f)
-                        )
-                        EmergencyDisplay()
-                    }
-                } else {
-                    Column(mod, Arrangement.SpaceEvenly, Alignment.CenterHorizontally) {
-                        EmergencyPlan(
-                            Modifier
-                                .fillMaxHeight(0.5f)
-                                .fillMaxWidth()
-                        )
-                        EmergencyDisplay()
-                    }
+            val mod = Modifier.fillMaxSize().safeContentPadding()
+            if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                Row(mod, Arrangement.SpaceEvenly, Alignment.CenterVertically) {
+                    EmergencyPlan(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.4f)
+                    )
+                    EmergencyDisplay()
                 }
-            }
-        }
-        LaunchedEffect(Unit) {
-            Timer().scheduleAtFixedRate(0L, 100L) {
-                timeLeft = getSnoozeLeft()
+            } else {
+                Column(mod, Arrangement.SpaceEvenly, Alignment.CenterHorizontally) {
+                    EmergencyPlan(
+                        Modifier
+                            .fillMaxHeight(0.5f)
+                            .fillMaxWidth()
+                    )
+                    EmergencyDisplay()
+                }
             }
         }
     }
 }
 
 @Composable
-fun EmergencyDisplay(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val transition = rememberInfiniteTransition()
-        val blink by transition.animateFloat(
-            1F, 0F,
-            animationSpec = infiniteRepeatable(
-                tween(400),
-                repeatMode = RepeatMode.Reverse
-            ),
-        )
+fun EmergencyDisplay() {
+    var timeLeft by remember { mutableStateOf(getSnoozeLeft()) }
+    Scaffold(
+        Modifier.fillMaxSize(),
+        bottomBar = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                if (timeLeft != null) Text(
+                    "L'allarme non verrà riaperto per $timeLeft",
+                    Modifier
+                        .align(Alignment.CenterVertically)
+                        .padding(15.dp)
+                )
+                Button(
+                    { snoozeUntil = Instant.now().plusSeconds(60 * 5) },
+                    Modifier.padding(15.dp)
+                ) {
+                    Text("Ignora per 5 minuti")
+                }
+                LaunchedEffect(Unit) {
+                    Timer().scheduleAtFixedRate(0L, 100L) {
+                        timeLeft = getSnoozeLeft()
+                    }
+                }
+            }
+        }
+    ) { it ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val transition = rememberInfiniteTransition()
+            val blink by transition.animateFloat(
+                1F, 0F,
+                animationSpec = infiniteRepeatable(
+                    tween(400),
+                    repeatMode = RepeatMode.Reverse
+                ),
+            )
 
-        Image(
-            painterResource(R.drawable.warning),
-            "Warning icon",
-            Modifier
-                .size(120.dp)
-                .alpha(blink)
-        )
-        Text(
-            Background.currEmergency,
-            style = MaterialTheme.typography.displayLarge,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            Background.currDescrizione, style = MaterialTheme.typography.displaySmall,
-            textAlign = TextAlign.Center
-        )
+            Image(
+                painterResource(R.drawable.warning),
+                "Warning icon",
+                Modifier
+                    .size(120.dp)
+                    .alpha(blink)
+            )
+            Text(
+                FetchEmergencyService.lastResponse.value!!.currEmergency,
+                style = MaterialTheme.typography.displayLarge,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                FetchEmergencyService.lastResponse.value!!.currDescrizione,
+                style = MaterialTheme.typography.displaySmall,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

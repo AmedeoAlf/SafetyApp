@@ -15,19 +15,43 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
+import org.json.JSONObject
 import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 import java.util.Timer
 import kotlin.concurrent.scheduleAtFixedRate
 
-class Background : Service() {
+data class ResponseData(
+    val isEmergency: Boolean,
+    val currEmergency: String,
+    val currDescrizione: String,
+    val serverError: String?,
+) {
+    fun updateWith(json: JSONObject): ResponseData {
+        val stato = json.getIntOrNull("STATO")
+        return ResponseData(
+            isEmergency = if (stato == null) this.isEmergency else stato != 0,
+            serverError = json.getStringOrNull("ERROR"),
+            currEmergency = json.getStringOrNull("MESSAGGIO") ?: this.currEmergency,
+            currDescrizione = json.getStringOrNull("DESCRIZIONE") ?: this.currDescrizione
+        )
+    }
+}
+
+class FetchEmergencyService : Service() {
     companion object {
-        var running: Background? = null
-        var currEmergency by mutableStateOf("Nessuna emergenza")
-        var currDescrizione by mutableStateOf("Nessuna descrizione")
-        var isEmergency = MutableLiveData<Boolean>(false)
-        var serverError = MutableLiveData<String?>(null)
+        var running: FetchEmergencyService? = null
+
+        val lastResponse = MutableLiveData<ResponseData>(
+            ResponseData(
+                isEmergency = false,
+                currEmergency = "Nessuna emergenza",
+                currDescrizione = "Nessuna descrizione",
+                serverError = null
+            )
+        )
+
         var snoozeUntil: Instant by mutableStateOf(Instant.now())
 
         // Stringa contente i secondi rimanenti di allarme disattivato, null => allarme in funzione
@@ -50,18 +74,15 @@ class Background : Service() {
     private lateinit var wakeLock: WakeLock
 
     // Funzione da eseguire ad intervallo regolare (*/2s)
-    fun update() {
+    fun fetch() {
         wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
-        util.doRequest("requestSchoolStateJs.php") { response ->
-            serverError.postValue(if (response.has("ERROR")) response.getString("ERROR") else null)
-            val receivedEmergency = (response.getInt("STATO") != 0)
-            if (isEmergency.value!! != receivedEmergency) isEmergency.postValue(receivedEmergency)
-            currEmergency = response.getString("MESSAGGIO")
-            currDescrizione = response.getString("DESCRIZIONE")
+        util.dispatchRequest("requestSchoolStateJs.php") { response ->
+            val parsed = lastResponse.value!!.updateWith(response)
+            lastResponse.postValue(parsed)
 
-            if (receivedEmergency && Instant.now().isAfter(snoozeUntil)) startActivity(
+            if (parsed.isEmergency && Instant.now().isAfter(snoozeUntil)) startActivity(
                 Intent(
-                    this@Background, EmergencyActivity::class.java
+                    this@FetchEmergencyService, EmergencyActivity::class.java
                 ).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
             )
         }
@@ -77,13 +98,13 @@ class Background : Service() {
     }
 
     override fun onCreate() {
+        // Solo un'istanza del servizio deve essere avviata
+        if (running != null) return
+        running = this
+
         wakeLock = getSystemService(PowerManager::class.java).newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK, "Background::Lock"
         )
-
-        // È già in esecuzione un Background?
-        if (running != null) return
-        running = this
 
         // Non fare nulla in mancanza di accesso alle notifiche
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
@@ -107,7 +128,7 @@ class Background : Service() {
         println("Started foreground service")
 
         // Chiama la funzione update ogni 2s per tutta la vita del servizio
-        Timer().scheduleAtFixedRate(0L, 2000L) { update() }
+        Timer().scheduleAtFixedRate(0L, 2000L) { fetch() }
 
         return super.onCreate()
     }
