@@ -56,7 +56,7 @@ class FetchEmergencyService : Service() {
                 isEmergency = false,
                 currEmergency = "Nessuna emergenza",
                 currDescrizione = "Nessuna descrizione",
-                error = "No real response"
+                error = null // Anche se questa risposta fittizia non è valida non vogliamo dare un errore
             )
         )
             private set
