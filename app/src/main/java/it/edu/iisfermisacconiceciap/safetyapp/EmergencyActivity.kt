@@ -12,7 +12,8 @@ class EmergencyActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            if (!FetchEmergencyService.lastResponse.isEmergency) finish()
+            // lastResponse should never be null with the service running
+            FetchEmergencyService.lastResponse?.let { if (!it.isEmergency) finish() }
             EmergencyScreen()
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

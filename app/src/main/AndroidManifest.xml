@@ -17,6 +17,7 @@
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/launcher_icon"
         android:label="@string/app_name"
@@ -24,7 +25,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SafetyApp"
         android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        tools:targetApi="33">
         <receiver
             android:name=".AutostartReceiver"
             android:enabled="true"
@@ -41,7 +42,8 @@
         <activity
             android:name=".EmergencyActivity"
             android:exported="false"
-            android:theme="@style/Theme.SafetyApp" /> <!-- Cheap solution pt. 2 -->
+            android:theme="@style/Theme.SafetyApp" />
+        <!-- Cheap solution pt. 2 -->
         <service
             android:name=".FetchEmergencyService"
             android:enabled="true"
@@ -54,7 +56,6 @@
             android:theme="@style/Theme.SafetyApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

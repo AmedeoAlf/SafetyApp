@@ -134,12 +134,12 @@ fun EmergencyDisplay() {
                     .alpha(blink)
             )
             Text(
-                FetchEmergencyService.lastResponse.currEmergency,
+                FetchEmergencyService.lastResponse?.currEmergency ?: "---",
                 style = MaterialTheme.typography.displayLarge,
                 textAlign = TextAlign.Center
             )
             Text(
-                FetchEmergencyService.lastResponse.currDescrizione,
+                FetchEmergencyService.lastResponse?.currDescrizione ?: "---",
                 style = MaterialTheme.typography.displaySmall,
                 textAlign = TextAlign.Center
             )

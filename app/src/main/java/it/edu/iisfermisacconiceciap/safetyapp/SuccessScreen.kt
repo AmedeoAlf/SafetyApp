@@ -26,7 +26,6 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,10 +48,12 @@ import kotlin.concurrent.scheduleAtFixedRate
 
 enum class BriefStatus(val dotColor: Color, val h1: () -> String, val h2: () -> String) {
     OK(Color.Green, { "SafetyApp è in funzione" }, { "Nessuna emergenza in corso" }),
+
+    WAITING(Color.Gray, { "Avvio in corso" }, { "In attesa della prima risposta del server" }),
     EMERGENCY(
         Color.Yellow,
         { "Emergenza in corso" },
-        { "${FetchEmergencyService.lastResponse.currEmergency}\n${FetchEmergencyService.lastResponse.currDescrizione}" }),
+        { "${FetchEmergencyService.lastResponse?.currEmergency}\n${FetchEmergencyService.lastResponse?.currDescrizione}" }),
     NETWORK_ERR(
         Color.Red,
         { "Impossibile connettersi al server" },
@@ -64,16 +65,17 @@ enum class BriefStatus(val dotColor: Color, val h1: () -> String, val h2: () -> 
     );
 
     companion object {
-        fun pick(): BriefStatus = when {
-            Util.lastExceptionThrown.value != null -> when (Util.lastExceptionThrown.value) {
-                is SocketTimeoutException, is ConnectException -> NETWORK_ERR
-                else -> OTHER_ERR
-            }
+        fun pickAppropriate(state: EmergencyState?): BriefStatus =
+            when {
+                state == null -> WAITING
+                state.error != null -> when (state.error) {
+                    is SocketTimeoutException, is ConnectException -> NETWORK_ERR
+                    else -> OTHER_ERR
+                }
 
-            FetchEmergencyService.lastResponse.error != null -> OTHER_ERR
-            FetchEmergencyService.lastResponse.isEmergency -> EMERGENCY
-            else -> OK
-        }
+                state.isEmergency -> EMERGENCY
+                else -> OK
+            }
     }
 
     @Composable
@@ -107,7 +109,6 @@ fun StatCard(preferencesManager: PreferencesManager) {
     var totalSuccessful by remember { mutableStateOf("---") }
     var totalUnreachable by remember { mutableStateOf("---") }
     var lastReset by remember { mutableStateOf("---") }
-    val lastException by Util.lastExceptionThrown.observeAsState()
 
     Card(Modifier.padding(40.dp)) {
         Column(
@@ -116,7 +117,6 @@ fun StatCard(preferencesManager: PreferencesManager) {
                 .width(500.dp),
         ) {
             Text("Ultima risposta: ${FetchEmergencyService.lastResponse}")
-            Text("Ultima eccezione: $lastException")
             Text("Connessioni avvenute con successo: $totalSuccessful")
             Text("Connessioni fallite: $totalUnreachable")
             Text("Ultimo reset: $lastReset")
@@ -173,7 +173,7 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    BriefStatus.pick().Widget()
+                    BriefStatus.pickAppropriate(FetchEmergencyService.lastResponse).Widget()
 
                     if (snoozeLeft != null) Button({
                         FetchEmergencyService.snoozeUntil = Instant.now().plusSeconds(60 * 5)

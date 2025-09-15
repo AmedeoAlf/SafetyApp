@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -22,6 +23,15 @@ class PreferencesManager(private val ctx: Context) {
     companion object {
         var lastUpdate: Instant by mutableStateOf(Instant.now())
             private set
+    }
+
+    private suspend fun edit(transform: suspend (MutablePreferences) -> Unit) {
+        runCatching {
+            ctx.dataStore.edit {
+                transform(it)
+                lastUpdate = Instant.now()
+            }
+        }
     }
 
     suspend fun getInt(name: String): Int? =
@@ -46,16 +56,11 @@ class PreferencesManager(private val ctx: Context) {
 
     suspend fun incrementInt(name: String) {
         val key = intPreferencesKey(name)
-        runCatching {
-            ctx.dataStore.edit {
-                it[key] = (it[key] ?: 0) + 1; lastUpdate = Instant.now()
-            }
-        }
+        edit { it[key] = (it[key] ?: 0) + 1 }
     }
 
     suspend fun <T> get(key: Preferences.Key<T>): T? =
         runCatching { ctx.dataStore.data.first()[key] }.getOrNull()
 
-    suspend fun <T> set(key: Preferences.Key<T>, value: T) =
-        runCatching { ctx.dataStore.edit { it[key] = value; lastUpdate = Instant.now() } }
+    suspend fun <T> set(key: Preferences.Key<T>, value: T) = edit { it[key] = value }
 }
