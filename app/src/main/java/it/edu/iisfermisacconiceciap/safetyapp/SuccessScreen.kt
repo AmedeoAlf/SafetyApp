@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.DotColor
 import it.edu.iisfermisacconiceciap.safetyapp.ui.theme.SafetyAppTheme
 import kotlinx.coroutines.runBlocking
 import java.net.ConnectException
@@ -47,19 +48,22 @@ import java.util.Timer
 import kotlin.concurrent.scheduleAtFixedRate
 
 enum class BriefStatus(val dotColor: Color, val h1: () -> String, val h2: () -> String) {
-    OK(Color.Green, { "SafetyApp è in funzione" }, { "Nessuna emergenza in corso" }),
+    Ok(DotColor.Green.color, { "SafetyApp è in funzione" }, { "Nessuna emergenza in corso" }),
 
-    WAITING(Color.Gray, { "Avvio in corso" }, { "In attesa della prima risposta del server" }),
-    EMERGENCY(
-        Color.Yellow,
-        { "Emergenza in corso" },
-        { "${FetchEmergencyService.lastResponse?.currEmergency}\n${FetchEmergencyService.lastResponse?.currDescrizione}" }),
-    NETWORK_ERR(
-        Color.Red,
+    Waiting(
+        DotColor.Gray.color,
+        { "Avvio in corso" },
+        { "In attesa della prima connessione al server" }),
+    Emergency(
+        DotColor.Yellow.color,
+        { "Emergenza: ${FetchEmergencyService.lastResponse?.currEmergency}" },
+        { "${FetchEmergencyService.lastResponse?.currDescrizione}" }),
+    NetworkErr(
+        DotColor.Red.color,
         { "Impossibile connettersi al server" },
         { "Assicurati di essere connesso alla rete della scuola" }),
-    OTHER_ERR(
-        Color.Red,
+    OtherErr(
+        DotColor.Red.color,
         { "Errore del server" },
         { "Controlla le informazioni di debug" }
     );
@@ -67,14 +71,14 @@ enum class BriefStatus(val dotColor: Color, val h1: () -> String, val h2: () -> 
     companion object {
         fun pickAppropriate(state: EmergencyState?): BriefStatus =
             when {
-                state == null -> WAITING
+                state == null -> Waiting
                 state.error != null -> when (state.error) {
-                    is SocketTimeoutException, is ConnectException -> NETWORK_ERR
-                    else -> OTHER_ERR
+                    is SocketTimeoutException, is ConnectException -> NetworkErr
+                    else -> OtherErr
                 }
 
-                state.isEmergency -> EMERGENCY
-                else -> OK
+                state.isEmergency -> Emergency
+                else -> Ok
             }
     }
 
@@ -137,10 +141,9 @@ fun StatCard(preferencesManager: PreferencesManager) {
         LaunchedEffect(PreferencesManager.lastUpdate) {
             totalSuccessful = (preferencesManager.getInt("total_connections") ?: 0).toString()
             totalUnreachable = (preferencesManager.getInt("total_unreachable") ?: 0).toString()
-            val lastResetTimestamp = preferencesManager.getInstant("lastReset")
-            lastReset = if (lastResetTimestamp == null) "mai" else Date.from(
-                lastResetTimestamp
-            ).toString()
+            lastReset = preferencesManager.getInstant("lastReset")?.let {
+                Date.from(it).toString()
+            } ?: "mai"
         }
     }
 }
@@ -151,6 +154,10 @@ fun StatCard(preferencesManager: PreferencesManager) {
 fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
     var snoozeLeft by remember { mutableStateOf(FetchEmergencyService.getSnoozeLeft()) }
     var openDialog by remember { mutableStateOf(false) }
+
+    Timer().scheduleAtFixedRate(100L, 100L) {
+        snoozeLeft = FetchEmergencyService.getSnoozeLeft()
+    }
 
     SafetyAppTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -186,11 +193,6 @@ fun SuccessScreen(preferencesManager: PreferencesManager? = null) {
                         DialogProperties(usePlatformDefaultWidth = false)
                     ) {
                         if (preferencesManager != null) StatCard(preferencesManager)
-                    }
-                    LaunchedEffect(Unit) {
-                        Timer().scheduleAtFixedRate(0L, 100L) {
-                            snoozeLeft = FetchEmergencyService.getSnoozeLeft()
-                        }
                     }
                 }
             }

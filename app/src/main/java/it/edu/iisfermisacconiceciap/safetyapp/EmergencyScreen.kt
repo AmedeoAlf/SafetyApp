@@ -51,8 +51,6 @@ fun EmergencyScreen() {
             modifier = Modifier
                 .fillMaxSize()
         ) {
-
-
             val mod = Modifier
                 .fillMaxSize()
                 .safeContentPadding()

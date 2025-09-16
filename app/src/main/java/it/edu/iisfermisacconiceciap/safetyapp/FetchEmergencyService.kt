@@ -54,8 +54,7 @@ class FetchEmergencyService : Service() {
     private val util = Util(this)
     private lateinit var wakeLock: WakeLock
 
-    // Funzione da eseguire ad intervallo regolare (*/2s)
-    fun fetchAsync() {
+    fun fetchAsyncForever() {
         CoroutineScope(Dispatchers.IO).launch {
             wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
             try {
@@ -80,7 +79,7 @@ class FetchEmergencyService : Service() {
                 lastResponse = (lastResponse ?: EmergencyState.STARTING_STATE).updateWith(e)
             }
         }.invokeOnCompletion {
-            Handler(Looper.getMainLooper()).postDelayed({ fetchAsync() }, 2000)
+            Handler(Looper.getMainLooper()).postDelayed({ fetchAsyncForever() }, 2000)
         }
     }
 
@@ -122,11 +121,15 @@ class FetchEmergencyService : Service() {
                 )
             ).setContentText("Tocca per andare nelle impostazioni").build()
 
-        startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(2, notification)
+        }
         println("Started foreground service")
 
         // Esegue il primo fetch (ogni fetch aggiunge in coda il prossimo)
-        fetchAsync()
+        fetchAsyncForever()
 
         return super.onCreate()
     }

@@ -22,7 +22,10 @@ class EmergencyActivity : ComponentActivity() {
             setShowWhenLocked(true)
         } else {
             @Suppress("DEPRECATION")
-            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+            // Crash costanti di _System UI_ con la flag `WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED`
+            // Sembra un bug di alcune build Oreo
+            // https://stackoverflow.com/questions/47915026/android-alarm-clock-app-crashes-systemui-with-nullpointerexception-under-oreo-o
+            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON/* or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED*/)
         }
     }
 }
